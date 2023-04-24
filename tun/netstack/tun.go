@@ -107,6 +107,36 @@ func CreateNetTUN(localAddresses, dnsServers []netip.Addr, mtu int) (tun.Device,
 	return dev, (*Net)(dev), nil
 }
 
+func AddLocalAddress(tun tun.Device, localAddress netip.Addr) error {
+	var protoNumber tcpip.NetworkProtocolNumber
+	if localAddress.Is4() {
+		protoNumber = ipv4.ProtocolNumber
+	} else if localAddress.Is6() {
+		protoNumber = ipv6.ProtocolNumber
+	}
+	protoAddr := tcpip.ProtocolAddress{
+		Protocol:          protoNumber,
+		AddressWithPrefix: tcpip.Address(localAddress.AsSlice()).WithPrefix(),
+	}
+
+	switch dev := tun.(type) {
+	case *netTun:
+		tcpipErr := dev.stack.AddProtocolAddress(1, protoAddr, stack.AddressProperties{})
+		if tcpipErr != nil {
+			return fmt.Errorf("AddProtocolAddress(%v): %v", localAddress, tcpipErr)
+		}
+		if localAddress.Is4() {
+			dev.hasV4 = true
+		} else if localAddress.Is6() {
+			dev.hasV6 = true
+		}
+	default:
+		return fmt.Errorf("AddAddress(%v): %v", tun, "not netTun")
+	}
+
+	return nil
+}
+
 func (tun *netTun) Name() (string, error) {
 	return "go", nil
 }
