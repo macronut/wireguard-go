@@ -117,7 +117,7 @@ func AddLocalAddress(tun tun.Device, localAddress netip.Addr) error {
 	}
 	protoAddr := tcpip.ProtocolAddress{
 		Protocol:          protoNumber,
-		AddressWithPrefix: tcpip.Address(localAddress.AsSlice()).WithPrefix(),
+		AddressWithPrefix: tcpip.AddrFromSlice(localAddress.AsSlice()).WithPrefix(),
 	}
 
 	switch dev := tun.(type) {
